@@ -53,14 +53,14 @@ class TestAIModels:
         """Test AI processing configuration"""
         config = AIProcessingConfig(
             enabled=True,
-            model_config=mock_ai_config,
+            ai_model_config=mock_ai_config,
             system_prompt="Test prompt",
             user_prompt_template="Process: {data}",
             batch_size=5
         )
         
         assert config.enabled is True
-        assert config.model_config == mock_ai_config
+        assert config.ai_model_config == mock_ai_config
         assert config.system_prompt == "Test prompt"
         assert config.user_prompt_template == "Process: {data}"
         assert config.batch_size == 5

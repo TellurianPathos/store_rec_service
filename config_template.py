@@ -67,24 +67,17 @@ CUSTOM_API_CONFIG = AIModelConfig(
     }
 )
 
-# AI Processing Configuration
-AI_PROCESSING_CONFIG = AIProcessingConfig(
-    enabled=True,  # Set to False to disable AI features
-    ai_model_config=OPENAI_CONFIG,  # Change this to your preferred provider
-    system_prompt=(
-        "You are a helpful assistant that processes product data "
-        "for recommendations."
+# AI-Enhanced Configuration  
+AI_ENHANCED_CONFIG = RecommendationConfig(
+    ai_processing=AIProcessingConfig(
+        enabled=True,
+        ai_model_config=OPENAI_CONFIG,
+        max_retries=3,
+        timeout_seconds=30.0,
+        batch_size=10,
+        parallel_requests=5,
+        custom_params={}
     ),
-    user_prompt_template="Process this product data: {data}",
-    output_format="json",
-    batch_size=10,  # Process products in batches
-    retry_attempts=3,
-    retry_delay=1.0
-)
-
-# Main Recommendation Configuration
-RECOMMENDATION_CONFIG = RecommendationConfig(
-    ai_processing=AI_PROCESSING_CONFIG,
     content_similarity_weight=0.6,  # Weight for content-based recommendations
     ai_enhancement_weight=0.4,      # Weight for AI-enhanced scores
     use_ai_for_user_profiling=True,
@@ -92,6 +85,9 @@ RECOMMENDATION_CONFIG = RecommendationConfig(
     cache_ai_responses=True,
     cache_ttl_seconds=3600  # Cache responses for 1 hour
 )
+
+# Main Recommendation Configuration (same as AI_ENHANCED_CONFIG)
+RECOMMENDATION_CONFIG = AI_ENHANCED_CONFIG
 
 # Environment-specific configurations
 
@@ -145,7 +141,7 @@ PROD_CONFIG = RecommendationConfig(
 MINIMAL_CONFIG = RecommendationConfig(
     ai_processing=AIProcessingConfig(
         enabled=False,
-        model_config=OPENAI_CONFIG,  # Not used when disabled
+        ai_model_config=OPENAI_CONFIG,  # Not used when disabled
         system_prompt="",
         user_prompt_template="",
         output_format="text",
@@ -158,7 +154,7 @@ MINIMAL_CONFIG = RecommendationConfig(
     use_ai_for_user_profiling=False,
     use_ai_for_content_analysis=False,
     cache_ai_responses=False,
-    cache_ttl_seconds=0
+    cache_ttl_seconds=300  # Minimum required value
 )
 
 # Configuration selector based on environment

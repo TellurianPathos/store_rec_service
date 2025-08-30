@@ -72,7 +72,7 @@ def test_ai_processing_config(mock_ai_config):
     """Test AI processing configuration"""
     return AIProcessingConfig(
         enabled=True,
-        model_config=mock_ai_config,
+        ai_model_config=mock_ai_config,
         system_prompt="Test system prompt",
         user_prompt_template="Test: {data}",
         output_format="json",
@@ -92,7 +92,7 @@ def test_recommendation_config(test_ai_processing_config):
         use_ai_for_user_profiling=True,
         use_ai_for_content_analysis=True,
         cache_ai_responses=False,  # Disable caching for tests
-        cache_ttl_seconds=0
+        cache_ttl_seconds=300  # Minimum required value
     )
 
 
@@ -102,7 +102,7 @@ def disabled_ai_config():
     return RecommendationConfig(
         ai_processing=AIProcessingConfig(
             enabled=False,
-            model_config=mock_ai_config(),
+            ai_model_config=mock_ai_config(),
             system_prompt="",
             user_prompt_template="",
             output_format="text",

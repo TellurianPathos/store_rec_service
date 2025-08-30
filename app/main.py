@@ -65,7 +65,7 @@ def get_ai_recommender() -> AIEnhancedRecommender:
     return ai_recommender
 
 @app.get("/health")
-async def health_check() -> Dict[str, str]:
+async def health_check():
     """
     Health check endpoint to verify the API is running.
     """
@@ -108,7 +108,7 @@ async def get_ai_recommendations(
         raise HTTPException(status_code=500, detail=f"Recommendation error: {str(e)}")
 
 @app.get("/config")
-async def get_configuration() -> Dict[str, any]:
+async def get_configuration():
     """
     Get current AI configuration (without sensitive data like API keys).
     """
