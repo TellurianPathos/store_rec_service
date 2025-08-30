@@ -56,5 +56,6 @@ disallow_incomplete_defs = true
 
 [dependency-groups]
 dev = [
+    "httpx>=0.28.1",
     "jupyter>=1.1.1",
 ]

@@ -6,6 +6,18 @@ A containerized product recommendation API built with FastAPI and Docker.
 
 This service provides product recommendations to users based on content-based filtering. It analyzes product attributes like name, category, and description to suggest similar items.
 
+## License and Attribution
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+**Attribution**: If you use this code in your project, please include a reference to this repository and credit TellurianPathos as the original author.
+
+### Quick Attribution Example
+```
+Recommendation system based on work by TellurianPathos
+Repository: https://github.com/TellurianPathos/store_rec_service
+```
+
 ## Prerequisites
 
 - Docker
@@ -17,7 +29,7 @@ This service provides product recommendations to users based on content-based fi
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/store_rec_service.git
+   git clone https://github.com/TellurianPathos/store_rec_service.git
    cd store_rec_service
    ```
 
@@ -37,7 +49,7 @@ This service provides product recommendations to users based on content-based fi
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/store_rec_service.git
+   git clone https://github.com/TellurianPathos/store_rec_service.git
    cd store_rec_service
    ```
 
@@ -49,7 +61,8 @@ This service provides product recommendations to users based on content-based fi
 
 3. Install dependencies:
    ```bash
-   uv pip install -r requirements.txt
+   uv add fastapi uvicorn[standard] pydantic scikit-learn pandas numpy joblib matplotlib seaborn
+   uv add --dev jupyter httpx pytest
    ```
 
 4. Train the recommendation model (if not already done):
@@ -125,7 +138,7 @@ store_rec_service/
 ├── .gitignore
 ├── Dockerfile
 ├── README.md
-└── requirements.txt
+└── pyproject.toml         # Project dependencies and configuration
 ```
 
 ## Technical Details
@@ -144,10 +157,22 @@ This service uses a content-based filtering approach:
 - [Scikit-learn](https://scikit-learn.org/) - Machine learning library
 - [Pandas](https://pandas.pydata.org/) - Data manipulation
 - [Docker](https://www.docker.com/) - Containerization
+- [uv](https://github.com/astral-sh/uv) - Fast Python package manager and resolver
 
-## Future Improvements
+## Contributing
 
-- Add user interaction data for collaborative filtering
-- Implement A/B testing framework
-- Add caching for frequently requested recommendations
-- Set up monitoring and logging
+We welcome contributions to improve this project! Here's how you can contribute:
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+**Note:** All contributions must adhere to the license terms above, which require offering changes back to the original repository.
+
+## Copyright
+
+© 2025 TellurianPathos. All rights reserved.
+
+**IMPORTANT**: This software is protected by copyright law. Unauthorized reproduction or distribution may result in civil and criminal penalties.
