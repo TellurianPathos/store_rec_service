@@ -268,5 +268,3 @@ We welcome contributions to improve this project! Here's how you can contribute:
 ## Copyright
 
 © 2025 TellurianPathos. All rights reserved.
-
-**IMPORTANT**: This software is protected by copyright law. Unauthorized reproduction or distribution may result in civil and criminal penalties.
