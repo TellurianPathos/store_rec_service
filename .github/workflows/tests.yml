@@ -1,0 +1,112 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.9, "3.10", "3.11"]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v1
+      with:
+        version: "latest"
+
+    - name: Install dependencies
+      run: |
+        uv sync --dev
+
+    - name: Lint with flake8
+      run: |
+        # Stop the build if there are Python syntax errors or undefined names
+        uv run flake8 app tests --count --select=E9,F63,F7,F82 --show-source --statistics
+        # Exit-zero treats all errors as warnings. GitHub editor is 127 chars wide
+        uv run flake8 app tests --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      continue-on-error: true
+
+    - name: Test with pytest
+      run: |
+        uv run pytest tests/ -v --cov=app --cov-report=xml --cov-report=term-missing
+
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  test-minimal:
+    runs-on: ubuntu-latest
+    name: Test minimal installation
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+
+    - name: Install minimal dependencies
+      run: |
+        pip install -e .
+        pip install pytest pytest-asyncio
+
+    - name: Test basic functionality
+      run: |
+        python -c "from app.models import RecommendationRequest; print('Basic models work')"
+        python -c "from app.recommender import ContentRecommender; print('Basic recommender works')"
+        pytest tests/test_models.py -v
+
+  security:
+    runs-on: ubuntu-latest
+    name: Security scan
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.11
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v1
+
+    - name: Install dependencies
+      run: |
+        uv sync --dev
+
+    - name: Run safety check
+      run: |
+        uv add --dev safety
+        uv run safety check
+      continue-on-error: true
+
+    - name: Run bandit security linter
+      run: |
+        uv add --dev bandit
+        uv run bandit -r app/ -f json -o bandit-report.json
+      continue-on-error: true
+
+    - name: Upload security scan results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-scan-results
+        path: bandit-report.json

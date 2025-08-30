@@ -1,10 +1,104 @@
-# Store Recommendation Service
+# AI-Enhanced Store Recommendation Service
 
-A containerized product recommendation API built with FastAPI and Docker.
+A containerized AI-powered product recommendation API built with FastAPI, featuring multiple AI provider integrations and comprehensive testing.
+
+## 🚀 Features
+
+- **AI-Enhanced Recommendations**: Integrate with OpenAI, Anthropic, Ollama, or custom AI APIs
+- **Content-Based Filtering**: Traditional recommendation algorithms as fallback
+- **Multiple AI Providers**: Support for OpenAI, Anthropic Claude, Ollama, and custom APIs
+- **Flexible Configuration**: Easy setup for different environments and AI providers
+- **Comprehensive Testing**: Unit tests, integration tests, and CI/CD pipelines
+- **Professional Documentation**: OpenAPI/Swagger docs and detailed guides
+- **Docker Support**: Containerized for easy deployment
+
+## 🧪 Testing
+
+This project includes comprehensive testing to ensure reliability and quality.
+
+### Test Structure
+
+```
+tests/
+├── conftest.py              # Test configuration and fixtures
+├── test_ai_models.py        # Test AI model classes
+├── test_ai_client.py        # Test AI client implementations
+├── test_recommender.py      # Test basic recommendation engine
+├── test_ai_recommender.py   # Test AI-enhanced recommender
+└── test_api.py             # Test FastAPI endpoints
+```
+
+### Running Tests
+
+#### Quick Test Run
+```bash
+# Install dependencies
+uv sync --dev
+
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=app --cov-report=term-missing
+```
+
+#### Using Test Runner Script
+```bash
+# Run comprehensive test suite
+python run_tests.py
+```
+
+#### Test Categories
+
+**Unit Tests**
+```bash
+# Test specific components
+pytest tests/test_ai_models.py -v
+pytest tests/test_recommender.py -v
+```
+
+**Integration Tests**
+```bash
+# Test API endpoints
+pytest tests/test_api.py -v
+
+# Run integration test script (requires running server)
+python integration_tests.py
+```
+
+**AI-Specific Tests**
+```bash
+# Test AI functionality (may require API keys)
+pytest tests/ -m ai -v
+```
+
+### Test Coverage
+
+The test suite covers:
+- ✅ **Model Validation**: Pydantic models and data structures
+- ✅ **AI Client Logic**: All AI provider implementations
+- ✅ **Recommendation Engines**: Both basic and AI-enhanced
+- ✅ **API Endpoints**: All FastAPI routes and error handling
+- ✅ **Configuration**: Setup and validation
+- ✅ **Error Handling**: Graceful failure scenarios
+
+### Continuous Integration
+
+GitHub Actions automatically run tests on:
+- Multiple Python versions (3.9, 3.10, 3.11)
+- Different operating systems
+- Various configurations (minimal, full AI)
+
+See `.github/workflows/tests.yml` for the complete CI/CD pipeline.
 
 ## Project Description
 
-This service provides product recommendations to users based on content-based filtering. It analyzes product attributes like name, category, and description to suggest similar items.
+This service provides AI-enhanced product recommendations using:
+
+1. **Content-Based Filtering**: Analyzes product attributes using TF-IDF vectorization
+2. **AI Enhancement**: Uses configurable AI providers to improve recommendations
+3. **User Profiling**: AI-generated user profiles for better personalization
+4. **Flexible Architecture**: Modular design supporting multiple AI providers
 
 ## License and Attribution
 

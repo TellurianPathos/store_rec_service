@@ -70,7 +70,7 @@ CUSTOM_API_CONFIG = AIModelConfig(
 # AI Processing Configuration
 AI_PROCESSING_CONFIG = AIProcessingConfig(
     enabled=True,  # Set to False to disable AI features
-    model_config=OPENAI_CONFIG,  # Change this to your preferred provider
+    ai_model_config=OPENAI_CONFIG,  # Change this to your preferred provider
     system_prompt=(
         "You are a helpful assistant that processes product data "
         "for recommendations."
@@ -99,7 +99,7 @@ RECOMMENDATION_CONFIG = RecommendationConfig(
 DEV_CONFIG = RecommendationConfig(
     ai_processing=AIProcessingConfig(
         enabled=True,
-        model_config=OLLAMA_CONFIG,
+        ai_model_config=OLLAMA_CONFIG,
         system_prompt=(
             "You are a helpful assistant that processes product data "
             "for recommendations."
@@ -122,7 +122,7 @@ DEV_CONFIG = RecommendationConfig(
 PROD_CONFIG = RecommendationConfig(
     ai_processing=AIProcessingConfig(
         enabled=True,
-        model_config=OPENAI_CONFIG,
+        ai_model_config=OPENAI_CONFIG,
         system_prompt=(
             "You are an expert product analyst. Analyze products for "
             "customer recommendations with high accuracy."

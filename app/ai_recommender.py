@@ -33,7 +33,7 @@ class AIEnhancedRecommender:
         
         # Initialize AI client if enabled
         if config.ai_processing.enabled:
-            self.ai_client = create_ai_client(config.ai_processing.model_config)
+            self.ai_client = create_ai_client(config.ai_processing.ai_model_config)
     
     async def initialize(self, data_path: str = "data/generic_dataset.csv"):
         """Initialize the recommender with data"""

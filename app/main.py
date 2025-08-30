@@ -72,7 +72,7 @@ async def health_check() -> Dict[str, str]:
     return {
         "status": "ok",
         "ai_enabled": DEFAULT_CONFIG.ai_processing.enabled,
-        "ai_provider": DEFAULT_CONFIG.ai_processing.model_config.provider.value if DEFAULT_CONFIG.ai_processing.enabled else "none"
+        "ai_provider": DEFAULT_CONFIG.ai_processing.ai_model_config.provider.value if DEFAULT_CONFIG.ai_processing.enabled else "none"
     }
 
 @app.post("/recommend", response_model=RecommendationResponse)
@@ -114,8 +114,8 @@ async def get_configuration() -> Dict[str, any]:
     """
     config_info = {
         "ai_processing_enabled": DEFAULT_CONFIG.ai_processing.enabled,
-        "ai_provider": DEFAULT_CONFIG.ai_processing.model_config.provider.value,
-        "model_name": DEFAULT_CONFIG.ai_processing.model_config.model_name,
+        "ai_provider": DEFAULT_CONFIG.ai_processing.ai_model_config.provider.value,
+        "model_name": DEFAULT_CONFIG.ai_processing.ai_model_config.model_name,
         "content_similarity_weight": DEFAULT_CONFIG.content_similarity_weight,
         "ai_enhancement_weight": DEFAULT_CONFIG.ai_enhancement_weight,
         "batch_size": DEFAULT_CONFIG.ai_processing.batch_size,

@@ -27,7 +27,7 @@ class AIModelConfig(BaseModel):
 class AIProcessingConfig(BaseModel):
     """Configuration for AI-powered data processing"""
     enabled: bool = True
-    model_config: AIModelConfig
+    ai_model_config: AIModelConfig
     system_prompt: str = (
         "You are a helpful assistant that processes product data "
         "for recommendations."
