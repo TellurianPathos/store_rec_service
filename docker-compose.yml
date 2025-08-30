@@ -1,0 +1,293 @@
+version: '3.8'
+
+services:
+  # AI Recommendation Service
+  ai-recommendation-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+      args:
+        - BUILD_ENV=production
+        - VERSION=${VERSION:-1.0.0}
+    image: ai-recommendation-service:${TAG:-latest}
+    container_name: ai-recommendation-service
+    restart: unless-stopped
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    
+    # Environment configuration
+    environment:
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - HOST=0.0.0.0
+      - PORT=8000
+      - WORKERS=2
+      
+      # Database configuration
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=recommendations
+      - DB_USER=recommendations_user
+      - DB_PASSWORD=${DB_PASSWORD:-secure_password_123}
+      
+      # Redis configuration
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      
+      # Security
+      - SECURITY_REQUIRE_API_KEY=true
+      - SECURITY_API_KEYS=${API_KEYS:-default-api-key-change-me}
+      - SECURITY_RATE_LIMIT_ENABLED=true
+      - SECURITY_TRUSTED_HOSTS=localhost,127.0.0.1,ai-recommendation-service
+      
+      # AI Configuration
+      - AI_OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - AI_ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - AI_OLLAMA_BASE_URL=http://ollama:11434
+      
+      # Monitoring
+      - MONITORING_ENABLE_METRICS=true
+      - MONITORING_ENABLE_HEALTH_CHECKS=true
+    
+    # Environment file
+    env_file:
+      - .env
+    
+    # Port mapping
+    ports:
+      - "8000:8000"
+      - "9090:9090"  # Metrics port
+    
+    # Volume mounts
+    volumes:
+      - ./data:/app/data:ro
+      - ./ml_models:/app/ml_models:rw
+      - ai-logs:/app/logs
+      - ai-cache:/app/cache
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Dependencies
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    
+    # Networks
+    networks:
+      - ai-recommendation-network
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: ai-recommendation-postgres
+    restart: unless-stopped
+    
+    environment:
+      - POSTGRES_DB=recommendations
+      - POSTGRES_USER=recommendations_user
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-secure_password_123}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    
+    ports:
+      - "5432:5432"
+    
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U recommendations_user -d recommendations"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    
+    networks:
+      - ai-recommendation-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: ai-recommendation-redis
+    restart: unless-stopped
+    
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      ${REDIS_PASSWORD:+--requirepass $REDIS_PASSWORD}
+    
+    volumes:
+      - redis-data:/data
+    
+    ports:
+      - "6379:6379"
+    
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    
+    networks:
+      - ai-recommendation-network
+
+  # Ollama for local AI (optional)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ai-recommendation-ollama
+    restart: unless-stopped
+    
+    # GPU support (uncomment if you have NVIDIA GPU)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    
+    volumes:
+      - ollama-data:/root/.ollama
+    
+    ports:
+      - "11434:11434"
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    
+    networks:
+      - ai-recommendation-network
+    
+    # Optional: Only start if using Ollama
+    profiles:
+      - ollama
+
+  # Nginx Load Balancer (optional)
+  nginx:
+    image: nginx:alpine
+    container_name: ai-recommendation-nginx
+    restart: unless-stopped
+    
+    ports:
+      - "80:80"
+      - "443:443"
+    
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ai-logs:/var/log/nginx
+    
+    depends_on:
+      - ai-recommendation-service
+    
+    networks:
+      - ai-recommendation-network
+    
+    # Optional: Only start if using load balancer
+    profiles:
+      - load-balancer
+
+  # Monitoring with Prometheus (optional)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ai-recommendation-prometheus
+    restart: unless-stopped
+    
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    
+    ports:
+      - "9090:9090"
+    
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    
+    networks:
+      - ai-recommendation-network
+    
+    profiles:
+      - monitoring
+
+  # Grafana Dashboard (optional)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ai-recommendation-grafana
+    restart: unless-stopped
+    
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    
+    ports:
+      - "3000:3000"
+    
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    
+    depends_on:
+      - prometheus
+    
+    networks:
+      - ai-recommendation-network
+    
+    profiles:
+      - monitoring
+
+# Named volumes
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
+  ollama-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  ai-logs:
+    driver: local
+  ai-cache:
+    driver: local
+
+# Networks
+networks:
+  ai-recommendation-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

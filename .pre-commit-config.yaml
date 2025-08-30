@@ -1,0 +1,170 @@
+# Pre-commit configuration for AI Recommendation Service
+# Production-ready code quality and security checks
+
+repos:
+  # Ruff - Python linter and formatter (replaces black, flake8, isort)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.9
+    hooks:
+      # Linter
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        name: ruff-lint
+        description: Run ruff linter
+      # Formatter
+      - id: ruff-format
+        name: ruff-format
+        description: Run ruff formatter
+
+  # MyPy - Static type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        additional_dependencies: 
+          - types-requests
+          - types-redis
+          - pydantic
+        exclude: ^(tests/|scripts/|notebooks/)
+        args: [--ignore-missing-imports, --show-error-codes]
+
+  # Security checks
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        args: [-r, ., -x, tests/, -f, json, -o, bandit-report.json]
+        name: bandit-security-check
+        description: Run bandit security checks
+
+  # General pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      # Basic file checks
+      - id: trailing-whitespace
+        name: trim-whitespace
+        description: Trim trailing whitespace
+      - id: end-of-file-fixer
+        name: fix-end-of-file
+        description: Ensure files end with newline
+      - id: check-yaml
+        name: check-yaml
+        description: Check YAML syntax
+      - id: check-json
+        name: check-json
+        description: Check JSON syntax
+      - id: check-toml
+        name: check-toml
+        description: Check TOML syntax
+      - id: check-merge-conflict
+        name: check-merge-conflict
+        description: Check for merge conflict markers
+      - id: check-added-large-files
+        name: check-large-files
+        description: Check for large files
+        args: [--maxkb=1000]
+      - id: check-case-conflict
+        name: check-case-conflict
+        description: Check for case conflicts
+      - id: check-docstring-first
+        name: check-docstring-first
+        description: Check docstring placement
+      - id: debug-statements
+        name: check-debug-statements
+        description: Check for debug statements
+      - id: name-tests-test
+        name: name-tests-test
+        description: Ensure test files are named correctly
+        args: [--pytest-test-first]
+
+  # Secrets detection
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        name: detect-secrets
+        description: Detect secrets in code
+        args: [--baseline, .secrets.baseline]
+        exclude: |
+          (?x)^(
+            .*\.lock$|
+            .*\.min\.js$|
+            .*\.min\.css$|
+            package-lock\.json$|
+            poetry\.lock$|
+            .*\.log$
+          )$
+
+  # Docker files
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint-docker
+        name: hadolint
+        description: Lint Dockerfiles
+
+  # YAML formatting
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
+    hooks:
+      - id: prettier
+        types_or: [yaml, json, markdown]
+        args: [--write, --prose-wrap, always]
+        exclude: |
+          (?x)^(
+            \.github/.*\.yml$|
+            .*\.min\.json$
+          )$
+
+  # Dependency vulnerability scanning
+  - repo: local
+    hooks:
+      - id: pip-audit
+        name: pip-audit
+        description: Audit Python dependencies for vulnerabilities
+        entry: pip-audit
+        language: system
+        args: [--desc, --format=json, --output=pip-audit-report.json]
+        pass_filenames: false
+        files: ^(requirements.*\.txt|pyproject\.toml)$
+
+      # Custom security checks
+      - id: check-env-vars
+        name: check-environment-variables
+        description: Check for exposed secrets in environment files
+        entry: python scripts/check_env_security.py
+        language: system
+        files: ^\.env.*$
+
+      # Database migration safety
+      - id: check-migrations
+        name: check-database-migrations
+        description: Check database migrations for safety
+        entry: python scripts/check_migrations.py
+        language: system
+        files: ^migrations/.*\.sql$
+
+  # Conventional commits
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.0.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [--optional-scope]
+
+# Configuration
+default_stages: [commit]
+fail_fast: false
+
+ci:
+  autofix_prs: true
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit hooks
+
+    for more information, see https://pre-commit.ci
+  autoupdate_branch: ''
+  autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
+  autoupdate_schedule: weekly
+  skip: []
+  submodules: false

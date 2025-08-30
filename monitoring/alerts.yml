@@ -1,0 +1,309 @@
+# Prometheus Alerting Rules for AI Recommendation Service
+# Production-ready alerting configuration
+
+groups:
+  # High-Priority Alerts
+  - name: critical-alerts
+    rules:
+      # Service availability
+      - alert: ServiceDown
+        expr: up{job="ai-recommendation-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: ai-recommendation
+        annotations:
+          summary: "AI Recommendation Service is down"
+          description: "The AI Recommendation Service has been down for more than 1 minute."
+          runbook_url: "https://runbooks.company.com/ai-recommendation-service-down"
+
+      # High error rate
+      - alert: HighErrorRate
+        expr: |
+          (
+            rate(http_requests_total{job="ai-recommendation-service", status=~"5.."}[5m]) /
+            rate(http_requests_total{job="ai-recommendation-service"}[5m])
+          ) * 100 > 5
+        for: 5m
+        labels:
+          severity: critical
+          service: ai-recommendation
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }}% for the last 5 minutes, which is above the 5% threshold."
+
+      # High response time
+      - alert: HighResponseTime
+        expr: |
+          histogram_quantile(0.95, 
+            rate(http_request_duration_seconds_bucket{job="ai-recommendation-service"}[5m])
+          ) > 2
+        for: 10m
+        labels:
+          severity: critical
+          service: ai-recommendation
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is {{ $value }}s, which is above the 2s threshold."
+
+      # Database connectivity
+      - alert: DatabaseDown
+        expr: up{job="postgres"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "Database is down"
+          description: "PostgreSQL database has been down for more than 2 minutes."
+
+      # Redis connectivity
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: cache
+        annotations:
+          summary: "Redis cache is down"
+          description: "Redis cache has been down for more than 2 minutes."
+
+  # Resource Usage Alerts
+  - name: resource-alerts
+    rules:
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: system_cpu_usage_percent > 80
+        for: 10m
+        labels:
+          severity: warning
+          service: ai-recommendation
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}% for more than 10 minutes."
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: |
+          (system_memory_usage_bytes / (system_memory_usage_bytes + system_memory_available_bytes)) * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+          service: ai-recommendation
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value }}% for more than 10 minutes."
+
+      # High disk usage
+      - alert: HighDiskUsage
+        expr: system_disk_usage_percent > 85
+        for: 15m
+        labels:
+          severity: warning
+          service: ai-recommendation
+        annotations:
+          summary: "High disk usage"
+          description: "Disk usage is {{ $value }}% for more than 15 minutes."
+
+      # Low disk space
+      - alert: LowDiskSpace
+        expr: system_disk_usage_percent > 95
+        for: 5m
+        labels:
+          severity: critical
+          service: ai-recommendation
+        annotations:
+          summary: "Critical disk space"
+          description: "Disk usage is {{ $value }}%, which is critically low."
+
+  # AI Service Alerts
+  - name: ai-service-alerts
+    rules:
+      # AI service high error rate
+      - alert: AIServiceHighErrorRate
+        expr: |
+          (
+            rate(ai_requests_total{status="error"}[10m]) /
+            rate(ai_requests_total[10m])
+          ) * 100 > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: ai-processing
+        annotations:
+          summary: "AI service high error rate"
+          description: "AI service error rate is {{ $value }}% for the last 10 minutes."
+
+      # AI service timeout
+      - alert: AIServiceTimeout
+        expr: |
+          histogram_quantile(0.95, 
+            rate(ai_request_duration_seconds_bucket[10m])
+          ) > 30
+        for: 10m
+        labels:
+          severity: warning
+          service: ai-processing
+        annotations:
+          summary: "AI service high response time"
+          description: "AI service 95th percentile response time is {{ $value }}s."
+
+      # High AI token usage
+      - alert: HighAITokenUsage
+        expr: rate(ai_token_usage_total[1h]) > 100000
+        for: 15m
+        labels:
+          severity: warning
+          service: ai-processing
+        annotations:
+          summary: "High AI token usage"
+          description: "AI token usage is {{ $value }} tokens/hour, which may indicate unexpected usage."
+
+      # Circuit breaker open
+      - alert: CircuitBreakerOpen
+        expr: circuit_breaker_state > 0
+        for: 2m
+        labels:
+          severity: warning
+          service: ai-processing
+        annotations:
+          summary: "Circuit breaker is open"
+          description: "Circuit breaker for {{ $labels.service }} is open, indicating service issues."
+
+  # Application Health Alerts
+  - name: application-alerts
+    rules:
+      # Low recommendation generation rate
+      - alert: LowRecommendationRate
+        expr: rate(recommendations_generated_total[10m]) < 0.1
+        for: 15m
+        labels:
+          severity: warning
+          service: ai-recommendation
+        annotations:
+          summary: "Low recommendation generation rate"
+          description: "Recommendation generation rate is {{ $value }}/second, which is unusually low."
+
+      # High cache miss rate
+      - alert: HighCacheMissRate
+        expr: |
+          (
+            rate(cache_misses_total[10m]) /
+            (rate(cache_hits_total[10m]) + rate(cache_misses_total[10m]))
+          ) * 100 > 50
+        for: 15m
+        labels:
+          severity: warning
+          service: ai-recommendation
+        annotations:
+          summary: "High cache miss rate"
+          description: "Cache miss rate is {{ $value }}% for the last 10 minutes."
+
+      # No active users
+      - alert: NoActiveUsers
+        expr: active_users_total{time_window="5_minutes"} == 0
+        for: 30m
+        labels:
+          severity: warning
+          service: ai-recommendation
+        annotations:
+          summary: "No active users"
+          description: "No active users detected for 30 minutes."
+
+  # Security Alerts
+  - name: security-alerts
+    rules:
+      # High rate of 4xx errors (potential attacks)
+      - alert: HighClientErrorRate
+        expr: |
+          rate(http_requests_total{status=~"4.."}[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          service: security
+        annotations:
+          summary: "High rate of client errors"
+          description: "Rate of 4xx errors is {{ $value }}/second, which may indicate an attack."
+
+      # Authentication failures
+      - alert: HighAuthFailureRate
+        expr: |
+          rate(http_requests_total{status="401"}[5m]) > 1
+        for: 2m
+        labels:
+          severity: warning
+          service: security
+        annotations:
+          summary: "High authentication failure rate"
+          description: "Authentication failure rate is {{ $value }}/second."
+
+      # Rate limiting active
+      - alert: RateLimitingActive
+        expr: |
+          rate(http_requests_total{status="429"}[10m]) > 0
+        for: 5m
+        labels:
+          severity: info
+          service: security
+        annotations:
+          summary: "Rate limiting is active"
+          description: "Rate limiting is blocking {{ $value }} requests/second."
+
+  # Infrastructure Alerts
+  - name: infrastructure-alerts
+    rules:
+      # Container restarts
+      - alert: ContainerRestarting
+        expr: |
+          increase(container_last_seen{name=~"ai-recommendation.*"}[10m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "Container restarting frequently"
+          description: "Container {{ $labels.name }} has restarted {{ $value }} times in the last 10 minutes."
+
+      # Load balancer issues
+      - alert: LoadBalancerDown
+        expr: up{job="nginx"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          service: infrastructure
+        annotations:
+          summary: "Load balancer is down"
+          description: "Nginx load balancer has been down for more than 2 minutes."
+
+  # Business Logic Alerts
+  - name: business-alerts
+    rules:
+      # Recommendation quality drop
+      - alert: RecommendationQualityDrop
+        expr: |
+          avg_over_time(recommendation_quality_score[1h]) < 0.6
+        for: 30m
+        labels:
+          severity: warning
+          service: ai-recommendation
+        annotations:
+          summary: "Recommendation quality degraded"
+          description: "Average recommendation quality score is {{ $value }}, below the 0.6 threshold."
+
+      # Unusual traffic pattern
+      - alert: UnusualTrafficPattern
+        expr: |
+          (
+            rate(http_requests_total[5m]) > 
+            1.5 * avg_over_time(rate(http_requests_total[5m])[1h:5m])
+          ) or (
+            rate(http_requests_total[5m]) < 
+            0.5 * avg_over_time(rate(http_requests_total[5m])[1h:5m])
+          )
+        for: 10m
+        labels:
+          severity: info
+          service: ai-recommendation
+        annotations:
+          summary: "Unusual traffic pattern detected"
+          description: "Current traffic rate {{ $value }}/second is significantly different from the hourly average."

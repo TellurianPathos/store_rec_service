@@ -9,6 +9,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 import joblib
 import os
 
+from app.logger import get_logger, log_performance
+
 from app.ai_models import (
     AIProcessingConfig, 
     RecommendationConfig,
@@ -35,21 +37,30 @@ class AIEnhancedRecommender:
         if config.ai_processing.enabled:
             self.ai_client = create_ai_client(config.ai_processing.ai_model_config)
     
+    @log_performance()
     async def initialize(self, data_path: str = "data/generic_dataset.csv"):
         """Initialize the recommender with data"""
+        logger = get_logger(__name__)
+        logger.info(f"Initializing AI recommender with data from {data_path}")
+        
         # Load product data
         self.products_df = pd.read_csv(data_path)
+        logger.info(f"Loaded {len(self.products_df)} products from dataset")
         
         # Process products with AI if enabled
         if self.config.ai_processing.enabled and self.ai_client:
             await self._ai_enhance_products()
+        else:
+            logger.info("AI processing disabled, using content-based recommendations only")
         
         # Train content-based model
         self._train_content_model()
+        logger.info("AI recommender initialization completed")
     
     async def _ai_enhance_products(self):
         """Enhance product data using AI"""
-        print("Enhancing products with AI...")
+        logger = get_logger(__name__)
+        logger.info("Starting AI enhancement of products", extra={"product_count": len(self.products_df)})
         
         # Prepare data for AI processing
         product_texts = []
@@ -93,7 +104,16 @@ class AIEnhancedRecommender:
                 enhanced_data.extend(results)
                 
             except AIClientError as e:
-                print(f"AI processing error for batch {i}: {e}")
+                logger.error(
+                    f"AI processing failed for batch {i//batch_size + 1}",
+                    extra={
+                        "batch_start": i,
+                        "batch_size": len(batch),
+                        "error_type": type(e).__name__,
+                        "ai_provider": self.config.ai_processing.ai_model_config.provider.value
+                    },
+                    exc_info=True
+                )
                 # Create dummy results for failed batch
                 for _ in batch:
                     enhanced_data.append(AIAnalysisResult(
@@ -131,8 +151,11 @@ class AIEnhancedRecommender:
                         features.append(ai_data['enhanced_description'])
                     if 'key_features' in ai_data:
                         features.extend(ai_data['key_features'])
-                except (json.JSONDecodeError, AttributeError):
-                    pass
+                except (json.JSONDecodeError, AttributeError) as e:
+                    logger.warning(
+                        "Failed to parse AI analysis data",
+                        extra={"product_id": str(product.get('id', product.name)), "error": str(e)}
+                    )
             
             text_features.append(" ".join(features))
         
@@ -153,12 +176,25 @@ class AIEnhancedRecommender:
             'products': self.products_df
         }, "ml_models/ai_enhanced_model.pkl")
     
+    @log_performance()
     async def get_recommendations(
         self, 
         request: AIEnhancedRecommendationRequest
     ) -> EnhancedRecommendationResponse:
         """Get AI-enhanced recommendations"""
+        logger = get_logger(__name__)
         start_time = time.time()
+        
+        logger.info(
+            "Processing recommendation request",
+            extra={
+                "user_id": request.user_id,
+                "num_recommendations": request.num_recommendations,
+                "ai_processing_enabled": request.ai_processing_enabled,
+                "has_preferences": bool(request.user_preferences),
+                "has_context": bool(request.context)
+            }
+        )
         
         # Generate user profile with AI if enabled
         user_profile = None
@@ -226,7 +262,15 @@ class AIEnhancedRecommender:
             )
             return result.processed_data
         except AIClientError as e:
-            print(f"Error generating user profile: {e}")
+            logger.error(
+                "Failed to generate user profile",
+                extra={
+                    "user_id": request.user_id,
+                    "error_type": type(e).__name__,
+                    "ai_provider": self.config.ai_processing.ai_model_config.provider.value
+                },
+                exc_info=True
+            )
             return None
     
     def _get_content_recommendations(
@@ -322,10 +366,24 @@ class AIEnhancedRecommender:
                             self.config.ai_enhancement_weight * recommendations[i].ai_relevance_score
                         )
             except (json.JSONDecodeError, ValueError, IndexError):
-                print("Error parsing AI scores, using default scores")
+                logger.warning(
+                    "Failed to parse AI recommendation scores, using defaults",
+                    extra={
+                        "user_id": request.user_id,
+                        "recommendation_count": len(recommendations)
+                    }
+                )
                 
         except AIClientError as e:
-            print(f"Error scoring recommendations: {e}")
+            logger.error(
+                "Failed to score recommendations with AI",
+                extra={
+                    "user_id": request.user_id,
+                    "error_type": type(e).__name__,
+                    "ai_provider": self.config.ai_processing.ai_model_config.provider.value
+                },
+                exc_info=True
+            )
         
         # Sort by combined score
         recommendations.sort(key=lambda x: x.combined_score, reverse=True)
@@ -359,7 +417,15 @@ class AIEnhancedRecommender:
             )
             return result.processed_data
         except AIClientError as e:
-            print(f"Error generating explanation: {e}")
+            logger.error(
+                "Failed to generate recommendation explanation",
+                extra={
+                    "user_id": request.user_id,
+                    "error_type": type(e).__name__,
+                    "ai_provider": self.config.ai_processing.ai_model_config.provider.value
+                },
+                exc_info=True
+            )
             return None
     
     async def close(self):

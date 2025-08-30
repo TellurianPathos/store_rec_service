@@ -1,0 +1,257 @@
+# Development Docker Compose Configuration
+# Use this for local development with hot reloading and debugging
+
+version: '3.8'
+
+services:
+  # AI Recommendation Service - Development Mode
+  ai-recommendation-service-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder  # Use builder stage for development dependencies
+      args:
+        - BUILD_ENV=development
+    image: ai-recommendation-service:dev
+    container_name: ai-recommendation-service-dev
+    restart: unless-stopped
+    
+    # Development environment
+    environment:
+      - ENVIRONMENT=development
+      - DEBUG=true
+      - LOG_LEVEL=DEBUG
+      - HOST=0.0.0.0
+      - PORT=8000
+      - WORKERS=1
+      
+      # Database (use SQLite for development)
+      - DB_HOST=postgres-dev
+      - DB_PORT=5432
+      - DB_NAME=recommendations_dev
+      - DB_USER=dev_user
+      - DB_PASSWORD=dev_password
+      
+      # Redis
+      - REDIS_HOST=redis-dev
+      - REDIS_PORT=6379
+      
+      # Security (relaxed for development)
+      - SECURITY_REQUIRE_API_KEY=false
+      - SECURITY_RATE_LIMIT_ENABLED=false
+      - SECURITY_CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000,http://localhost:8080
+      
+      # AI Configuration
+      - AI_OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - AI_ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - AI_OLLAMA_BASE_URL=http://ollama-dev:11434
+      
+      # Development flags
+      - DEV_RELOAD=true
+      - DEV_DEBUG_MODE=true
+      - SKIP_VALIDATION=false
+    
+    # Development command with hot reload
+    command: >
+      sh -c "
+        echo 'Starting development server with hot reload...' &&
+        uvicorn app.main:app 
+        --host 0.0.0.0 
+        --port 8000 
+        --reload 
+        --reload-dir /app/app 
+        --log-level debug
+      "
+    
+    # Port mapping
+    ports:
+      - "8000:8000"
+      - "8001:8001"  # Debug port
+    
+    # Volume mounts for hot reloading
+    volumes:
+      - ./app:/app/app:rw
+      - ./data:/app/data:ro
+      - ./ml_models:/app/ml_models:rw
+      - ./tests:/app/tests:ro
+      - dev-logs:/app/logs
+    
+    # Dependencies
+    depends_on:
+      postgres-dev:
+        condition: service_started
+      redis-dev:
+        condition: service_started
+    
+    networks:
+      - ai-dev-network
+
+  # PostgreSQL for Development
+  postgres-dev:
+    image: postgres:15-alpine
+    container_name: ai-recommendation-postgres-dev
+    restart: unless-stopped
+    
+    environment:
+      - POSTGRES_DB=recommendations_dev
+      - POSTGRES_USER=dev_user
+      - POSTGRES_PASSWORD=dev_password
+    
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+      - ./scripts/init-dev-db.sql:/docker-entrypoint-initdb.d/init-dev-db.sql:ro
+    
+    ports:
+      - "5433:5432"  # Different port to avoid conflicts
+    
+    networks:
+      - ai-dev-network
+
+  # Redis for Development
+  redis-dev:
+    image: redis:7-alpine
+    container_name: ai-recommendation-redis-dev
+    restart: unless-stopped
+    
+    command: redis-server --appendonly yes --maxmemory 256mb
+    
+    volumes:
+      - redis-dev-data:/data
+    
+    ports:
+      - "6380:6379"  # Different port to avoid conflicts
+    
+    networks:
+      - ai-dev-network
+
+  # Ollama for Development (with lightweight model)
+  ollama-dev:
+    image: ollama/ollama:latest
+    container_name: ai-recommendation-ollama-dev
+    restart: unless-stopped
+    
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    
+    volumes:
+      - ollama-dev-data:/root/.ollama
+    
+    ports:
+      - "11435:11434"  # Different port to avoid conflicts
+    
+    networks:
+      - ai-dev-network
+
+  # Development Database Admin (pgAdmin)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: ai-recommendation-pgadmin
+    restart: unless-stopped
+    
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@example.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+      - PGADMIN_CONFIG_SERVER_MODE=False
+    
+    ports:
+      - "8080:80"
+    
+    depends_on:
+      - postgres-dev
+    
+    networks:
+      - ai-dev-network
+
+  # Redis Commander (Redis GUI)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: ai-recommendation-redis-commander
+    restart: unless-stopped
+    
+    environment:
+      - REDIS_HOSTS=local:redis-dev:6379
+    
+    ports:
+      - "8081:8081"
+    
+    depends_on:
+      - redis-dev
+    
+    networks:
+      - ai-dev-network
+
+  # Jupyter Notebook for ML Development
+  jupyter:
+    build:
+      context: .
+      dockerfile: Dockerfile.jupyter
+    container_name: ai-recommendation-jupyter
+    restart: unless-stopped
+    
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+      - JUPYTER_TOKEN=dev-token-123
+    
+    ports:
+      - "8888:8888"
+    
+    volumes:
+      - ./notebooks:/home/jovyan/work/notebooks:rw
+      - ./data:/home/jovyan/work/data:ro
+      - ./ml_models:/home/jovyan/work/ml_models:rw
+      - ./app:/home/jovyan/work/app:ro
+    
+    networks:
+      - ai-dev-network
+
+  # Test Runner Service
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: ai-recommendation-test-runner
+    
+    environment:
+      - ENVIRONMENT=testing
+      - LOG_LEVEL=WARNING
+    
+    volumes:
+      - ./app:/app/app:ro
+      - ./tests:/app/tests:ro
+      - ./data:/app/data:ro
+    
+    command: >
+      sh -c "
+        echo 'Running test suite...' &&
+        python -m pytest tests/ -v --tb=short --cov=app --cov-report=term-missing
+      "
+    
+    depends_on:
+      - postgres-dev
+      - redis-dev
+    
+    networks:
+      - ai-dev-network
+    
+    profiles:
+      - testing
+
+# Development volumes
+volumes:
+  postgres-dev-data:
+    driver: local
+  redis-dev-data:
+    driver: local
+  ollama-dev-data:
+    driver: local
+  dev-logs:
+    driver: local
+
+# Development network
+networks:
+  ai-dev-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
