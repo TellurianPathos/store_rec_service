@@ -1,0 +1,32 @@
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environment
+venv/
+ENV/
+env/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Version Control
+.git
+.gitignore
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Development data
+notebooks/
+data/
+
+# Local files
+.env
+README.md
