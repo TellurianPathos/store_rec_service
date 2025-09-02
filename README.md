@@ -1,6 +1,6 @@
 # AI-Enhanced Store Recommendation Service
 
-A containerized AI-powered product recommendation API built with FastAPI, featuring multiple AI provider integrations and comprehensive testing.
+A cutting-edge, containerized, AI-powered product recommendation API built with FastAPI. This service provides a robust platform for delivering personalized product suggestions, leveraging a flexible architecture that supports multiple AI providers, including OpenAI, Anthropic, and local models via Ollama. It's designed for easy integration, scalability, and comprehensive testing.
 
 ## 🚀 Features
 
@@ -100,17 +100,10 @@ This service provides AI-enhanced product recommendations using:
 3. **User Profiling**: AI-generated user profiles for better personalization
 4. **Flexible Architecture**: Modular design supporting multiple AI providers
 
-## License and Attribution
+## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the terms of the GNU General Public License v3.0. For more details, see the [LICENSE](LICENSE) file.
 
-**Attribution**: If you use this code in your project, please include a reference to this repository and credit TellurianPathos as the original author.
-
-### Quick Attribution Example
-```
-Recommendation system based on work by TellurianPathos
-Repository: https://github.com/TellurianPathos/store_rec_service
-```
 
 ## Prerequisites
 
@@ -255,16 +248,19 @@ This service uses a content-based filtering approach:
 
 ## Contributing
 
-We welcome contributions to improve this project! Here's how you can contribute:
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
+If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
+Don't forget to give the project a star! Thanks again!
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-**Note:** All contributions must adhere to the license terms above, which require offering changes back to the original repository.
+All contributions will be licensed under the GPLv3 license.
 
 ## Copyright
 
-© 2025 TellurianPathos. All rights reserved.
+© 2025 TellurianPathos
